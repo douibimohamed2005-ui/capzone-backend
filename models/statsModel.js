@@ -12,7 +12,7 @@ exports.getOverview = (days, callback) => {
       SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) AS confirmed,
       SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) AS delivered,
       SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled
-    FROM \`Order\`
+    FROM \`order\`
     WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
   `;
   db.query(sql, [days], callback);
@@ -25,7 +25,7 @@ exports.getRevenueOverTime = (days, callback) => {
       DATE(created_at) AS date,
       COALESCE(SUM(CASE WHEN status != 'cancelled' THEN total_price ELSE 0 END), 0) AS revenue,
       COUNT(*) AS orders
-    FROM \`Order\`
+    FROM \`order\`
     WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
     GROUP BY DATE(created_at)
     ORDER BY date ASC
@@ -39,7 +39,7 @@ exports.getOrdersByHour = (days, callback) => {
     SELECT
       HOUR(created_at) AS hour,
       COUNT(*) AS orders
-    FROM \`Order\`
+    FROM \`order\`
     WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
     GROUP BY HOUR(created_at)
     ORDER BY hour ASC
@@ -55,7 +55,7 @@ exports.getOrdersByWeekday = (days, callback) => {
       DAYNAME(created_at) AS dayName,
       COUNT(*) AS orders,
       COALESCE(SUM(CASE WHEN status != 'cancelled' THEN total_price ELSE 0 END), 0) AS revenue
-    FROM \`Order\`
+    FROM \`order\`
     WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
     GROUP BY DAYOFWEEK(created_at), DAYNAME(created_at)
     ORDER BY dayNum ASC
@@ -71,8 +71,8 @@ exports.getByWilaya = (days, callback) => {
       COUNT(*) AS orders,
       COALESCE(SUM(o.total_price), 0) AS revenue,
       COALESCE(AVG(o.total_price), 0) AS avgOrder
-    FROM \`Order\` o
-    LEFT JOIN \`Wilaya\` w ON w.id = o.wilaya_id
+    FROM \`order\` o
+    LEFT JOIN \`wilaya\` w ON w.id = o.wilaya_id
     WHERE o.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
       AND o.status != 'cancelled'
     GROUP BY o.wilaya_id, w.name
@@ -90,7 +90,7 @@ exports.getCancellationTrend = (days, callback) => {
       COUNT(*) AS total,
       SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled,
       SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) AS delivered
-    FROM \`Order\`
+    FROM \`order\`
     WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
     GROUP BY DATE(created_at)
     ORDER BY date ASC
@@ -108,14 +108,14 @@ exports.getProductRevenue = (days, callback) => {
       p.stock,
       COALESCE(SUM(oi.quantity), 0) AS totalSold,
       COALESCE(SUM(oi.quantity * oi.price), 0) AS totalRevenue
-    FROM Product p
-    LEFT JOIN OrderItem oi ON oi.product_id = p.id
-    LEFT JOIN \`Order\` o ON o.id = oi.order_id
+    FROM product p
+    LEFT JOIN orderitem oi ON oi.product_id = p.id
+    LEFT JOIN \`order\` o ON o.id = oi.order_id
       AND o.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
       AND o.status != 'cancelled'
     GROUP BY p.id, p.name, p.price, p.stock
     ORDER BY totalRevenue DESC
-  `;
+  `;OrderItem
   db.query(sql, [days], callback);
 };
 
@@ -130,7 +130,7 @@ exports.getStockHealth = (callback) => {
         WHEN stock <= 20    THEN 'medium'
         ELSE                     'healthy'
       END AS health
-    FROM Product
+    FROM product
     ORDER BY stock ASC
   `;
   db.query(sql, callback);

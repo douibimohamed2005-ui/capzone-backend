@@ -2,13 +2,13 @@ const db = require("../config/db");
 
 // GET
 exports.getAllProducts = (callback) => {
-  db.query("SELECT * FROM Product", callback);
+  db.query("SELECT * FROM product", callback);
 };
 
 // CREATE
 exports.createProduct = (data, callback) => {
   const sql = `
-    INSERT INTO Product (name, price, stock, image)
+    INSERT INTO product (name, price, stock, image)
     VALUES (?, ?, ?, ?)
   `;
   db.query(sql, data, callback);
@@ -16,13 +16,13 @@ exports.createProduct = (data, callback) => {
 
 // DELETE
 exports.deleteProduct = (id, callback) => {
-  db.query("DELETE FROM Product WHERE id = ?", [id], callback);
+  db.query("DELETE FROM product WHERE id = ?", [id], callback);
 };
 
 // UPDATE
 exports.updateProduct = (data, callback) => {
   const sql = `
-    UPDATE Product 
+    UPDATE product 
     SET name = ?, price = ?, stock = ?, image = ?
     WHERE id = ?
   `;
@@ -30,6 +30,6 @@ exports.updateProduct = (data, callback) => {
 };
 //get product by id to delete the image from uplaod folder when a product deleted
 exports.deleteProduct = (id, callback) => {
-  const sql = "DELETE FROM Product WHERE id = ?";
+  const sql = "DELETE FROM product WHERE id = ?";
   db.query(sql, [id], callback);
 };

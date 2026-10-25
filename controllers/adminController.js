@@ -3,6 +3,16 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 
+const logRegistrationDbError = (stage, error) => {
+  const message = String(error.sqlMessage || error.message || "Database error")
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[redacted email]")
+    .slice(0, 300);
+  console.error(`Admin registration ${stage} failed`, {
+    code: error.code || "UNKNOWN",
+    message,
+  });
+};
+
 // ── EMAIL TRANSPORTER ──
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -14,24 +24,39 @@ const transporter = nodemailer.createTransport({
 
 // REGISTER (ONLY ONE ADMIN)
 exports.register = async (req, res) => {
-  const { email, password } = req.body;
+  const email = typeof req.body?.email === "string" ? req.body.email.trim() : "";
+  const password = typeof req.body?.password === "string" ? req.body.password : "";
 
-  adminModel.getAllAdmins(async (err, results) => {
-    if (err) return res.status(500).json({ error: err.message });
+  if (!email || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ message: "Enter a valid email address." });
+  }
+  if (password.length < 6 || Buffer.byteLength(password, "utf8") > 72) {
+    return res.status(400).json({ message: "Password must be 6 to 72 bytes long." });
+  }
 
-    if (results.length > 0) {
-      return res.status(400).json({
-        message: "Admin already exists. Only one admin allowed.",
-      });
-    }
-
+  try {
+    console.info("Admin registration request received");
     const hashedPassword = await bcrypt.hash(password, 10);
+    console.info("Admin registration password hashing succeeded");
 
-    adminModel.createAdmin([email, hashedPassword], (err2) => {
-      if (err2) return res.status(500).json({ error: err2.message });
-      res.json({ message: "Admin created successfully" });
+    adminModel.createFirstAdmin(email, hashedPassword, (err, result) => {
+      if (err) {
+        logRegistrationDbError("database operation", err);
+        return res.status(500).json({ message: "Registration could not be completed. Check server logs for the registration error code." });
+      }
+      if (result?.locked === false) {
+        return res.status(503).json({ message: "Registration is busy. Please try again." });
+      }
+      if (result?.exists) {
+        return res.status(400).json({ message: "Admin already exists. Only one admin allowed." });
+      }
+      console.info("Admin registration insert succeeded");
+      return res.status(201).json({ message: "Admin created successfully" });
     });
-  });
+  } catch (error) {
+    console.error("Admin registration password hashing failed", { code: error.code || error.name || "UNKNOWN" });
+    return res.status(500).json({ message: "Registration could not be completed. Check server logs for the registration error code." });
+  }
 };
 
 // LOGIN

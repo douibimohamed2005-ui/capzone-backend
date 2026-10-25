@@ -38,8 +38,8 @@ exports.deleteProduct = (req, res) => {
   // 1️⃣ Check for active orders containing this product
   const checkSql = `
     SELECT COUNT(*) AS activeCount
-    FROM OrderItem oi
-    JOIN \`Order\` o ON o.id = oi.order_id
+   FROM orderitem oi
+    JOIN \`order\` o ON o.id = oi.order_id
     WHERE oi.product_id = ?
       AND o.status IN ('pending', 'confirmed')
   `;
@@ -57,7 +57,7 @@ exports.deleteProduct = (req, res) => {
     }
 
     // 2️⃣ Safe to delete — get product to find image
-    db.query("SELECT * FROM Product WHERE id = ?", [id], (err, result) => {
+    db.query("SELECT * FROM product WHERE id = ?", [id], (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
 
       if (result.length === 0) {
@@ -100,7 +100,7 @@ exports.updateProduct = (req, res) => {
       res.json({ message: "Product updated with new image" });
     });
   } else {
-    const sql = `UPDATE Product SET name = ?, price = ?, stock = ? WHERE id = ?`;
+    const sql = `UPDATE product SET name = ?, price = ?, stock = ? WHERE id = ?`;
     db.query(sql, [name, price, stock, id], (err) => {
       if (err) return res.status(500).json({ error: err.message });
       res.json({ message: "Product updated (image unchanged)" });
