@@ -2,17 +2,16 @@ const db = require("../config/db");
 
 // GET ALL ADMINS (to check if exists)
 exports.getAllAdmins = (callback) => {
-  db.query("SELECT * FROM Admin", callback);
+  db.query("SELECT * FROM admin", callback);
 };
-
 // FIND ADMIN BY EMAIL
 exports.getAdminByEmail = (email, callback) => {
-  db.query("SELECT * FROM Admin WHERE email = ?", [email], callback);
+  db.query("SELECT * FROM admin WHERE email = ?", [email], callback);
 };
 
 // CREATE ADMIN
 exports.createAdmin = (data, callback) => {
-  const sql = "INSERT INTO Admin (email, password) VALUES (?, ?)";
+  const sql = "INSERT INTO admin (email, password) VALUES (?, ?)";
   db.query(sql, data, callback);
 };
 
@@ -32,12 +31,12 @@ exports.createFirstAdmin = (email, hashedPassword, callback) => {
         return callback(null, { locked: false });
       }
 
-      connection.query("SELECT COUNT(*) AS count FROM Admin", (selectError, rows) => {
+      connection.query("SELECT COUNT(*) AS count FROM admin", (selectError, rows) => {
         if (selectError) return releaseWithError(selectError);
         if (Number(rows[0].count) > 0) return releaseWithResult({ exists: true });
 
         connection.query(
-          "INSERT INTO Admin (email, password) VALUES (?, ?)",
+          "INSERT INTO admin (email, password) VALUES (?, ?)",
           [email, hashedPassword],
           (insertError, result) => {
             if (insertError) return releaseWithError(insertError);
@@ -70,23 +69,23 @@ exports.createFirstAdmin = (email, hashedPassword, callback) => {
 
 // SAVE OTP (code + expiry) ON THE ADMIN ROW
 exports.saveOtp = (email, otpCode, expiresAt, callback) => {
-  const sql = "UPDATE Admin SET otp_code = ?, otp_expires = ? WHERE email = ?";
+  const sql = "UPDATE admin SET otp_code = ?, otp_expires = ? WHERE email = ?";
   db.query(sql, [otpCode, expiresAt, email], callback);
 };
 
 // GET ADMIN OTP INFO
 exports.getOtpByEmail = (email, callback) => {
-  db.query("SELECT otp_code, otp_expires FROM Admin WHERE email = ?", [email], callback);
+  db.query("SELECT otp_code, otp_expires FROM admin WHERE email = ?", [email], callback);
 };
 
 // CLEAR OTP AFTER USE
 exports.clearOtp = (email, callback) => {
-  const sql = "UPDATE Admin SET otp_code = NULL, otp_expires = NULL WHERE email = ?";
+  const sql = "UPDATE admin SET otp_code = NULL, otp_expires = NULL WHERE email = ?";
   db.query(sql, [email], callback);
 };
 
 // UPDATE PASSWORD
 exports.updatePassword = (email, hashedPassword, callback) => {
-  const sql = "UPDATE Admin SET password = ? WHERE email = ?";
+  const sql = "UPDATE admin SET password = ? WHERE email = ?";
   db.query(sql, [hashedPassword, email], callback);
 };
